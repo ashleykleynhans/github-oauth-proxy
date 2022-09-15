@@ -132,7 +132,7 @@ def ping():
     ), 200)
 
 
-@app.route('/user', methods=['POST'])
+@app.route('/info', methods=['GET'])
 def webhook_handler():
     try:
         headers = request.headers
@@ -183,7 +183,8 @@ def webhook_handler():
         return make_response(jsonify(
             {
                 'status': 'error',
-                'msg': e
+                'msg': 'Unauthorized',
+                'detail': str(e)
             }
         ), 401)
 

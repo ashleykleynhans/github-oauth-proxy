@@ -3,6 +3,8 @@ import requests
 
 class GithubAuth(object):
     def __init__(self, access_token):
+        if not access_token:
+            raise PermissionError('No access token provided')
         self. required_scopes = ['user:email', 'read:org']
         self.headers = {
             'Authorization': f'Bearer {access_token}'
@@ -14,10 +16,17 @@ class GithubAuth(object):
             headers=self.headers
         )
 
+        if r.status_code != 200:
+            raise PermissionError(f'Github returned HTTP status: {r.status_code}')
+
         return r.headers
 
     def get_scopes(self):
         headers = self.get_headers()
+
+        if 'X-OAuth-Scopes' not in headers:
+            raise PermissionError('X-OAuth-Scopes header not found in Github response')
+
         scopes = headers['X-OAuth-Scopes']
         scopes = scopes.replace(' ', '')
         return scopes.split(',')
