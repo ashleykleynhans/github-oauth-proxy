@@ -116,7 +116,7 @@ as one of their email addresses in their Github account:
    Gate configuration file, and insert the following contents, obviously
    replacing the `clientId`, `clientSecret`, `preEstablishedRedirectUri`
    and `userInfoUri` with your own.
-   ```bash
+   ```yml
    security:
      oauth2:
        enabled: true
