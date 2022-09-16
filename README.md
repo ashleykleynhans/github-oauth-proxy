@@ -209,7 +209,7 @@ to configure your AWS Lambda deployment:
    `/home/spinnaker/.hal/default/profiles/gate-local.yml` configuration file
    to the one returned by the `zappa deploy` command and append the
    `/info` endpoint.
-   ```bash
+   ```yaml
        resource:
          userInfoUri: https://1d602d00.execute-api.us-east-1.amazonaws.com/user/info
    ```
