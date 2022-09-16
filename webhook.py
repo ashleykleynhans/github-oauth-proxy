@@ -72,7 +72,7 @@ def validate_primary_email(email_list, required_email_domain):
     return False
 
 
-def validate_authetication_requirements(config, username, orgs, emails):
+def validate_auth_requirements(config, username, orgs, emails):
     if config \
             and 'github' in config \
             and 'required' in config['github']:
@@ -95,6 +95,15 @@ def validate_authetication_requirements(config, username, orgs, emails):
             if not validate_primary_email(emails, domain):
                 raise PermissionError(f'User {username} does not have an @{domain} address ' +
                                       'associated with their Github account')
+
+
+def get_username(login):
+    if 'spinnaker' in config \
+            and 'username_mapping' in config['spinnaker'] \
+            and login in config['spinnaker']['username_mapping']:
+        return config['spinnaker']['username_mapping'][login]
+    else:
+        return login
 
 
 app = Flask(__name__)
@@ -153,8 +162,7 @@ def webhook_handler():
         info = github.get_user_info()
         orgs = github.get_org_list()
         emails = github.get_email_addresses()
-        username = info['login']
-        validate_authetication_requirements(config, username, orgs, emails)
+        validate_auth_requirements(config, info['login'], orgs, emails)
         name_info = info['name'].split(' ')
         primary_email = ''
         org_memberships = ''
@@ -170,15 +178,19 @@ def webhook_handler():
         if len(org_list):
             org_memberships = ','.join(org_list)
 
-        return make_response(jsonify(
-            {
-                'username': username,
-                'firstname': name_info[0],
-                'lastname': name_info[-1],
-                'email': primary_email,
-                'orgs': org_memberships
-            }
-        ), 200)
+        info['username'] = get_username(info['login'])
+        info['firstname'] = name_info[0]
+        info['lastname'] = name_info[-1]
+        info['email'] = primary_email
+
+        # You could use a regex to check this, but it can possibly match
+        # orgs with similar names instead of doing exact matching
+        info['orgs'] = org_memberships
+
+        # This should actually be checked by Gate but is not
+        info['organizations_url'] = 'https://api.github.com/user/orgs'
+
+        return make_response(jsonify(info), 200)
     except PermissionError as e:
         return make_response(jsonify(
             {

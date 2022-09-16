@@ -16,14 +16,14 @@ to belong to a specific Github organization for example.  This means
 that anyone with a Github account is then able to log in to your
 Spinnaker instance.
 
-This proxy not only calls the user endpoint, but also the orgs and
-emails endpoints for the user in order to gather more verbose information
-about a user so that you can require one or more of the following
-permissions:
+This proxy not only calls the Github user endpoint, but also calls
+the Github orgs and emails endpoints in order to gather more verbose
+information about a user so that you can require one or more of the
+following permissions:
 
 - User must belong to a specific Github organization.
 - User must have an email account associated with their Github account
-that matches a specific domain name,
+that matches a specific domain name.
 - User must have their email account that matches a specific domain
 name set as their primary email address on their Github account.
 
@@ -48,6 +48,42 @@ brew update
 brew upgrade python@3.9
 ```
 
+## Configuring required conditions, and/or user mapping (optional)
+
+These steps are completely **optional**, and only need to be
+configured if you require additional preconditions for a Github
+user to be able to log in to Spinnaker.
+
+1. Create a file called `config.yml`.
+2. If you require that a Github user is a member of your specific
+Github organisation, insert the following content:
+```yaml
+---
+github:
+  required:
+    org: ExampleDotCom
+```
+3. If you require that a Github user has your company email configured
+as one of their email addresses in their Github account:
+```yaml
+---
+github:
+   required:
+      email:
+        domain: example.com
+```
+4. If you require that a Github user has your company email configured
+   as one of their email addresses, and that it is set as their primary
+   email address in their Github account:
+```yaml
+---
+github:
+   required:
+      email:
+        domain: example.com
+        domain_required_as_primary: true
+```
+
 ## Testing your Webhook
 
 1. Run the webhook receiver from your terminal.
@@ -60,21 +96,33 @@ to the webhook receiver that is running on your local machine.
 ```bash
 ngrok http 8090
 ```
-4. Note that the ngrok URL will change if you stop ngrok and run it again,
+3. Note that the ngrok URL will change if you stop ngrok and run it again,
    so keep it running in a separate terminal window, otherwise you will not
    be able to test your webhook successfully.
-5. Update your `userInfoUri` configuration in Spinnaker to the URL that is
-   displayed while ngrok is running **(be sure to use the https one)**, and
-   append the `/info` endpoint.
+4. Take note of the URL that is returned by ngrok (don't stop it).
+5. Edit/create your `/home/spinnaker/.hal/default/profiles/gate-local.yml`
+   Gate configuration file, and insert the following contents, obviously
+   replacing the `clientId`, `clientSecret`, `preEstablishedRedirectUri`
+   and `userInfoUri` with your own.
 ```bash
-hal config security authn oauth2 edit \
-  --user-info-uri https://f00d-00-111-0-111.ngrok.io/info
-```
-6. Configure the required oAuth2 scopes in your Spinnaker configuration.
-```bash
-hal config security authn oauth2 edit \
-  --scope user:email,read:org
-```
+security:
+  oauth2:
+    enabled: true
+    client:
+      clientId: YOUR_GITHUB_CLIENT_ID_GOES_HERE
+      clientSecret: YOUR_GITHUB_CLIENT_SECRET_GOES_HERE
+      accessTokenUri: https://github.com/login/oauth/access_token
+      userAuthorizationUri: https://github.com/login/oauth/authorize
+      scope: user:email,read:org
+      preEstablishedRedirectUri: http://YOUR_GATE_URL/login
+      useCurrentUri: false
+    resource:
+      userInfoUri: https://f00d-00-111-0-111.ngrok.io/info
+    userInfoMapping:
+      email: email
+      firstName: firstname
+      lastName: lastname
+      username: username
 
 ## Deploy to AWS Lambda
 
@@ -145,11 +193,13 @@ You should expect the following response:
 ```json
 {"status":"ok"}
 ```
-9. Update your `userInfoUri` URL in Spinnaker to the one returned by the
-`zappa deploy` command and append the `/info` endpoint.
+9. Update your `userInfoUri` URL in your Spinnaker
+   `/home/spinnaker/.hal/default/profiles/gate-local.yml` configuration file
+   to the one returned by the `zappa deploy` command and append the
+   `/info` endpoint.
 ```bash
-hal config security authn oauth2 edit \
-  --user-info-uri https://1d602d00.execute-api.us-east-1.amazonaws.com/user/info
+    resource:
+      userInfoUri: https://1d602d00.execute-api.us-east-1.amazonaws.com/user/info
 ```
 10. You can view your logs by running:
 ```bash
