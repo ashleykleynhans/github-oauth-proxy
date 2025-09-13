@@ -69,4 +69,11 @@ class GithubAuth(object):
         return self.call_github_api_endpoint('/user/orgs')
 
     def get_user_info(self):
-        return self.call_github_api_endpoint('/user')
+        user_info = self.call_github_api_endpoint('/user')
+
+        # replace null values with empty strings
+        for key, value in user_info.items():
+            if value is None:
+                user_info[key] = ''
+
+        return user_info
