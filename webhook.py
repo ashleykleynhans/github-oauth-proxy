@@ -154,7 +154,16 @@ def webhook_handler():
                 }
             ), 401)
 
-        auth_header = headers['Authorization']
+        auth_header = headers.get('Authorization')
+
+        if not auth_header:
+            make_response(jsonify(
+                {
+                    'status': 'error',
+                    'msg': 'Authorization header not present or empty'
+                }
+            ), 401)
+
         auth = auth_header.split(' ')
         access_token = auth[-1]
         github = GithubAuth(access_token)
