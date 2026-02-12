@@ -98,7 +98,8 @@ def validate_auth_requirements(config, username, orgs, emails):
 
 
 def get_username(login):
-    if 'spinnaker' in config \
+    if config \
+            and 'spinnaker' in config \
             and 'username_mapping' in config['spinnaker'] \
             and login in config['spinnaker']['username_mapping']:
         return config['spinnaker']['username_mapping'][login]
