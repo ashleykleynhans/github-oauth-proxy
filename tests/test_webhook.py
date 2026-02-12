@@ -47,6 +47,14 @@ class TestLoadConfig:
             config = load_config()
             assert config is None
 
+    def test_module_loads_and_validates_config(self):
+        import importlib
+        import webhook
+        yaml_content = 'github:\n  required:\n    org: MyOrg\n'
+        with patch('builtins.open', mock_open(read_data=yaml_content)):
+            importlib.reload(webhook)
+        assert webhook.config == {'github': {'required': {'org': 'MyOrg'}}}
+
 
 class TestPing:
     def test_ping(self, client):
