@@ -91,6 +91,23 @@ as one of their email addresses in their Github account:
    For example, if the Github username is `githubuser123`, it will be
    remapped to `marcus` etc.
 
+## Running Tests
+
+1. Create a Python 3.12 Virtual Environment:
+   ```bash
+   python3 -m venv venv/py3.12
+   source venv/py3.12/bin/activate
+   ```
+2. Install the test dependencies:
+   ```bash
+   pip3 install -r requirements-test.txt
+   ```
+3. Run the tests:
+   ```bash
+   pytest -v
+   ```
+   A coverage report will be included automatically.
+
 ## Testing your Webhook
 
 1. Run the webhook receiver from your terminal.
