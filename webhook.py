@@ -196,7 +196,7 @@ def webhook_handler():
         info['firstname'] = name_info[0]
         info['lastname'] = name_info[-1]
         info['email'] = primary_email
-        info['roles'] = teams
+        info['roles'] = ','.join(teams)
 
         # You could use a regex to check this, but it can possibly match
         # orgs with similar names instead of doing exact matching

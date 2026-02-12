@@ -271,7 +271,7 @@ class TestWebhookHandler:
         assert data['firstname'] == 'Test'
         assert data['lastname'] == 'User'
         assert data['email'] == 'test@example.com'
-        assert data['roles'] == ['backend', 'devops']
+        assert data['roles'] == 'backend,devops'
         assert data['orgs'] == 'MyOrg'
 
     @patch('webhook.GithubAuth')
@@ -310,7 +310,7 @@ class TestWebhookHandler:
 
         assert response.status_code == 200
         data = json.loads(response.data)
-        assert data['roles'] == []
+        assert data['roles'] == ''
 
 
 class TestMain:
