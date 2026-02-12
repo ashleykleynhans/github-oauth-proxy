@@ -70,3 +70,36 @@ class GithubAuth(object):
 
     def get_user_info(self):
         return self.call_github_api_endpoint('/user')
+
+    def get_user_teams(self, config):
+        teams = []
+
+        if not config \
+                or 'github' not in config \
+                or 'required' not in config['github'] \
+                or 'org' not in config['github']['required']:
+            return teams
+
+        org = config['github']['required']['org']
+        page = 1
+
+        while True:
+            response = requests.get(
+                f'https://api.github.com/user/teams?page={page}&per_page=100',
+                headers=self.headers
+            )
+
+            if response.status_code != 200:
+                break
+
+            page_teams = response.json()
+            if not page_teams:
+                break
+
+            for team in page_teams:
+                if team['organization']['login'].lower() == org.lower():
+                    teams.append(team['slug'])
+
+            page += 1
+
+        return teams

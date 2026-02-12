@@ -109,6 +109,9 @@ def get_username(login):
 app = Flask(__name__)
 config = load_config()
 
+if config:
+    validate_config(config)
+
 
 @app.errorhandler(404)
 def not_found(error):
@@ -171,6 +174,7 @@ def webhook_handler():
         info = github.get_user_info()
         orgs = github.get_org_list()
         emails = github.get_email_addresses()
+        teams = github.get_user_teams(config)
         validate_auth_requirements(config, info['login'], orgs, emails)
         name_info = info['name'].split(' ')
         primary_email = ''
@@ -191,6 +195,7 @@ def webhook_handler():
         info['firstname'] = name_info[0]
         info['lastname'] = name_info[-1]
         info['email'] = primary_email
+        info['roles'] = teams
 
         # You could use a regex to check this, but it can possibly match
         # orgs with similar names instead of doing exact matching
@@ -212,9 +217,4 @@ def webhook_handler():
 
 if __name__ == '__main__':
     args = get_args()
-    config = load_config()
-
-    if config:
-        validate_config(config)
-
     app.run(host=args.host, port=args.port)

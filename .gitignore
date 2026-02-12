@@ -1,5 +1,6 @@
 zappa_settings.json
 venv/*
+.venv/*
 .vscode
 .idea
 __pycache__
