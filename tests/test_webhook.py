@@ -143,6 +143,14 @@ class TestValidateEmailDomain:
         from webhook import validate_email_domain
         assert validate_email_domain([], 'example.com') is None
 
+    def test_required_domain_not_substring_match(self):
+        from webhook import validate_email_domain
+        emails = [
+            {'email': 'user@example.com', 'primary': True},
+        ]
+        result = validate_email_domain(emails, 'sub.example.com')
+        assert result is None
+
 
 class TestValidatePrimaryEmail:
     def test_matching_primary(self):
@@ -159,8 +167,19 @@ class TestValidatePrimaryEmail:
         ]
         assert validate_primary_email(emails, 'example.com') is False
 
+    def test_matching_domain_but_not_primary(self):
+        from webhook import validate_primary_email
+        emails = [
+            {'email': 'user@example.com', 'primary': False},
+        ]
+        assert validate_primary_email(emails, 'example.com') is False
+
 
 class TestValidateAuthRequirements:
+    def test_no_config(self):
+        from webhook import validate_auth_requirements
+        validate_auth_requirements(None, 'testuser', [], [])
+
     def test_valid_org_membership(self):
         from webhook import validate_auth_requirements
         config = {'github': {'required': {'org': 'MyOrg'}}}
@@ -242,7 +261,13 @@ class TestGetUsername:
 class TestWebhookHandler:
     def test_missing_authorization_header(self, client):
         response = client.get('/info')
-        assert response.status_code in [401, 500]
+        assert response.status_code == 401
+
+    def test_empty_authorization_header(self, client):
+        response = client.get('/info', headers={'Authorization': ''})
+        assert response.status_code == 401
+        data = json.loads(response.data)
+        assert data['msg'] == 'Authorization header not present or empty'
 
     @patch('webhook.validate_auth_requirements')
     @patch('webhook.GithubAuth')
@@ -274,6 +299,28 @@ class TestWebhookHandler:
         assert data['roles'] == 'backend,devops'
         assert data['orgs'] == 'MyOrg'
 
+    @patch('webhook.validate_auth_requirements')
+    @patch('webhook.GithubAuth')
+    def test_successful_request_without_name(self, mock_auth_class, mock_validate, client):
+        mock_auth = MagicMock()
+        mock_auth.get_user_info.return_value = {
+            'login': 'testuser',
+            'name': None,
+        }
+        mock_auth.get_org_list.return_value = []
+        mock_auth.get_email_addresses.return_value = []
+        mock_auth.get_user_teams.return_value = []
+        mock_auth_class.return_value = mock_auth
+
+        response = client.get('/info', headers={
+            'Authorization': 'Bearer test_token'
+        })
+
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert data['firstname'] == ''
+        assert data['lastname'] == ''
+
     @patch('webhook.GithubAuth')
     def test_permission_error_returns_401(self, mock_auth_class, client):
         mock_auth = MagicMock()
@@ -288,6 +335,21 @@ class TestWebhookHandler:
         data = json.loads(response.data)
         assert data['status'] == 'error'
         assert data['msg'] == 'Unauthorized'
+
+    @patch('webhook.GithubAuth')
+    def test_internal_server_error(self, mock_auth_class, client):
+        mock_auth = MagicMock()
+        mock_auth.validate_scopes.side_effect = RuntimeError('boom')
+        mock_auth_class.return_value = mock_auth
+
+        response = client.get('/info', headers={
+            'Authorization': 'Bearer test_token'
+        })
+
+        assert response.status_code == 500
+        data = json.loads(response.data)
+        assert data['status'] == 'error'
+        assert data['msg'] == 'Internal Server Error'
 
     @patch('webhook.validate_auth_requirements')
     @patch('webhook.GithubAuth')
@@ -314,9 +376,8 @@ class TestWebhookHandler:
 
 
 class TestMain:
-    @patch('webhook.app')
     @patch('webhook.get_args')
-    def test_main_block(self, mock_get_args, mock_app):
+    def test_main_block(self, mock_get_args):
         mock_args = MagicMock()
         mock_args.host = '127.0.0.1'
         mock_args.port = 9000
@@ -324,15 +385,20 @@ class TestMain:
 
         import webhook
         # Read only the __main__ block, padded with newlines to preserve
-        # line numbers so coverage tracks lines 219-220
+        # line numbers so coverage tracks the main block
         with open(webhook.__file__) as f:
             lines = f.readlines()
-        main_start = next(i for i, l in enumerate(lines) if l.startswith("if __name__"))
+        main_start = next(i for i, line in enumerate(lines) if line.startswith("if __name__"))
         main_source = '\n' * main_start + ''.join(lines[main_start:])
         code = compile(main_source, webhook.__file__, 'exec')
         globs = dict(vars(webhook))
         globs['__name__'] = '__main__'
-        exec(code, globs)
+
+        mock_serve = MagicMock()
+        fake_waitress = MagicMock()
+        fake_waitress.serve = mock_serve
+        with patch.dict('sys.modules', {'waitress': fake_waitress}):
+            exec(code, globs)
 
         mock_get_args.assert_called_once()
-        mock_app.run.assert_called_once_with(host='127.0.0.1', port=9000)
+        mock_serve.assert_called_once_with(webhook.app, host='127.0.0.1', port=9000)

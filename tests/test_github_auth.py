@@ -130,6 +130,17 @@ class TestCallGithubApiEndpoint:
             auth.call_github_api_endpoint('/user')
 
     @patch('github_auth.requests.get')
+    def test_call_endpoint_401_non_json(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 401
+        mock_response.json.side_effect = ValueError('no json')
+        mock_get.return_value = mock_response
+
+        auth = GithubAuth('token')
+        with pytest.raises(PermissionError, match='Unauthorized'):
+            auth.call_github_api_endpoint('/user')
+
+    @patch('github_auth.requests.get')
     def test_call_endpoint_403(self, mock_get):
         mock_response = MagicMock()
         mock_response.status_code = 403
@@ -241,12 +252,24 @@ class TestGetUserTeams:
         assert teams == ['team1', 'team2']
 
     @patch('github_auth.requests.get')
-    def test_stops_on_non_200(self, mock_get):
+    def test_raises_on_non_200(self, mock_get):
         mock_response = MagicMock()
         mock_response.status_code = 401
+        mock_response.json.return_value = {'message': 'Bad credentials'}
         mock_get.return_value = mock_response
 
         config = {'github': {'required': {'org': 'MyOrg'}}}
         auth = GithubAuth('token')
-        teams = auth.get_user_teams(config)
-        assert teams == []
+        with pytest.raises(PermissionError, match='Unauthorized'):
+            auth.get_user_teams(config)
+
+    @patch('github_auth.requests.get')
+    def test_raises_on_server_error(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_get.return_value = mock_response
+
+        config = {'github': {'required': {'org': 'MyOrg'}}}
+        auth = GithubAuth('token')
+        with pytest.raises(RuntimeError, match='ERROR: 500'):
+            auth.get_user_teams(config)

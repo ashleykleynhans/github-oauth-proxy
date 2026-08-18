@@ -95,12 +95,12 @@ as one of their email addresses in their Github account:
 
 1. Create a Python 3.12 Virtual Environment:
    ```bash
-   python3 -m venv venv/py3.12
-   source venv/py3.12/bin/activate
+   python3 -m venv .venv
+   source .venv/bin/activate
    ```
-2. Install the test dependencies:
+2. Install the test and development dependencies:
    ```bash
-   pip3 install -r requirements-test.txt
+   pip3 install -r requirements-dev.txt
    ```
 3. Run the tests:
    ```bash
@@ -108,9 +108,17 @@ as one of their email addresses in their Github account:
    ```
    A coverage report will be included automatically.
 
+4. Run the linter and type checker:
+   ```bash
+   ruff check .
+   mypy github_auth.py webhook.py
+   ```
+
 ## Testing your Webhook
 
-1. Run the webhook receiver from your terminal.
+1. Run the webhook receiver from your terminal. The app is served with
+   [waitress](https://docs.pylonsproject.org/projects/waitress/), a
+   production WSGI server.
    ```bash
    python3 webhook.py
    ```
@@ -153,8 +161,8 @@ as one of their email addresses in their Github account:
 
 1. Create a Python 3.12 Virtual Environment:
    ```bash
-   python3 -m venv venv/py3.12
-   source venv/py3.12/bin/activate
+   python3 -m venv .venv
+   source .venv/bin/activate
    ```
 2. Upgrade pip.
    ```bash
@@ -162,7 +170,7 @@ as one of their email addresses in their Github account:
    ```
 3. Install the Python dependencies that are required by the Webhook receiver:
    ```bash
-   pip3 install -r requirements.txt
+   pip3 install -r requirements-deploy.txt
    ```
 4. Create a file called `zappa_settings.json` and insert the JSON content below
 to configure your AWS Lambda deployment:
