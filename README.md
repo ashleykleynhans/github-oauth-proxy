@@ -272,6 +272,20 @@ Then point Spinnaker's `userInfoUri` at
 `http://YOUR_GATE_URL:8090/info` as described in
 [Testing your Webhook](#testing-your-webhook).
 
+### Running with Docker Compose
+
+A [docker-compose.yml](docker-compose.yml) is included for running the proxy
+with the published image:
+
+```bash
+cp config.example.yml config.yml   # optional: edit to match your requirements
+docker compose up -d
+```
+
+The service publishes port `8090` and mounts `config.yml` into the container
+read-only. `config.yml` must exist before starting; for a proxy with no
+organization or email requirements, an empty file works (`touch config.yml`).
+
 ### Building locally
 
 Build the image with [Docker Bake](https://docs.docker.com/build/bake/):

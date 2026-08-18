@@ -1,0 +1,23 @@
+---
+# GitHub OAuth2 Proxy configuration.
+#
+# Copy this file to config.yml and edit the values to match your requirements.
+# All sections are optional: with an empty config.yml the proxy enforces no
+# organization or email requirements.
+
+github:
+  required:
+    # Require that a GitHub user is a member of your organization.
+    org: ExampleDotCom
+    # Require that a GitHub user has your company email configured as one of
+    # their email addresses, and optionally as their primary email address.
+    email:
+      domain: example.com
+      domain_required_as_primary: true
+
+# Map GitHub usernames/logins to more meaningful Spinnaker usernames.
+spinnaker:
+  username_mapping:
+    githubuser123: marcus
+    githubuser456: susan
+    githubuser789: james

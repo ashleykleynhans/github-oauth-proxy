@@ -1,0 +1,8 @@
+services:
+  github-oauth-proxy:
+    image: ghcr.io/ashleykleynhans/github-oauth-proxy:latest
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+    restart: unless-stopped
