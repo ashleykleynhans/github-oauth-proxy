@@ -17,6 +17,10 @@ target "docker-metadata-action" {}
 target "github-oauth-proxy" {
     inherits = ["docker-metadata-action"]
     dockerfile = "Dockerfile"
+    attest = [
+        "type=provenance,mode=min",
+        "type=sbom"
+    ]
     labels = {
         "org.opencontainers.image.title" = "GitHub OAuth2 Proxy for Spinnaker"
         "org.opencontainers.image.description" = "GitHub OAuth2 proxy for Spinnaker that enforces GitHub organization and email domain requirements."
