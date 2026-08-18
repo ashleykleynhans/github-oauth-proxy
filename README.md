@@ -238,6 +238,64 @@ to configure your AWS Lambda deployment:
    zappa tail
    ```
 
+## Deploy using Docker
+
+A [Dockerfile](Dockerfile) and [docker-bake.hcl](docker-bake.hcl) are included
+so the proxy can also be run as a container.
+
+### Pulling the image
+
+Pre-built images are published to the GitHub Container Registry (GHCR) on
+every push to `main` and for every release tag:
+
+```bash
+docker pull ghcr.io/ashleykleynhans/github-oauth-proxy:latest
+```
+
+Release tags publish versioned images, e.g. `ghcr.io/ashleykleynhans/github-oauth-proxy:1.2.0`.
+
+### Running the container
+
+The container listens on port `8090`, runs as a non-root user, and includes a
+healthcheck against the `/` endpoint. Mount your `config.yml` (optional) at
+`/app/config.yml` inside the container:
+
+```bash
+docker run -d \
+  --name github-oauth-proxy \
+  -p 8090:8090 \
+  -v /path/to/config.yml:/app/config.yml:ro \
+  ghcr.io/ashleykleynhans/github-oauth-proxy:latest
+```
+
+Then point Spinnaker's `userInfoUri` at
+`http://YOUR_GATE_URL:8090/info` as described in
+[Testing your Webhook](#testing-your-webhook).
+
+### Building locally
+
+Build the image with [Docker Bake](https://docs.docker.com/build/bake/):
+
+```bash
+docker buildx bake --set github-oauth-proxy.tags=github-oauth-proxy:dev
+```
+
+The `--set` override tags the image (CI tags it via
+[docker/metadata-action](https://github.com/docker/metadata-action)); without
+it the image is built untagged.
+
+### Release process
+
+Tagging a release publishes versioned images to GHCR. The workflow matches
+plain semver tags, so no `v` prefix is required:
+
+```bash
+git tag 1.3.0
+git push origin 1.3.0
+```
+
+The workflow tags the image `1.3.0` and `1.3`, and also refreshes `latest`.
+
 ## Community and Contributing
 
 Pull requests and issues on [GitHub](https://github.com/ashleykleynhans/github-oauth-proxy)

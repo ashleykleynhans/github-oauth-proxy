@@ -1,0 +1,108 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '[0-9]*.[0-9]*.[0-9]*'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements-test.txt
+
+      - name: Run tests
+        run: pytest -v
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-,format=short
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+          labels: |
+            org.opencontainers.image.title=GitHub OAuth2 Proxy for Spinnaker
+            org.opencontainers.image.description=GitHub OAuth2 proxy for Spinnaker that enforces GitHub organization and email domain requirements.
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=GPL-3.0
+
+      - name: Build and push
+        uses: docker/bake-action@v7
+        with:
+          files: |
+            ./docker-bake.hcl
+            cwd://${{ steps.meta.outputs.bake-file }}
+          targets: github-oauth-proxy
+          push: true
+          provenance: true
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify image was pushed
+        run: |
+          IMAGE="ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}"
+          echo "Verifying image: ${IMAGE}"
+          if docker manifest inspect "${IMAGE}" > /dev/null; then
+            echo "SUCCESS: Image verified: ${IMAGE}"
+          else
+            echo "FAILED: Image not found: ${IMAGE}"
+            exit 1
+          fi
+
+  create-summary:
+    needs: build-and-push
+    if: always() && needs.build-and-push.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create job summary
+        run: |
+          {
+            echo "## Docker Image Published"
+            echo ""
+            echo "**Image:** ghcr.io/${{ github.repository }}"
+            echo ""
+            echo "### To pull this image:"
+            echo '```bash'
+            echo "docker pull ghcr.io/${{ github.repository }}:latest"
+            echo '```'
+            echo ""
+            echo "**Note:** If the image is private, make it public at:"
+            echo "https://github.com/${{ github.repository_owner }}?tab=packages"
+          } >> "$GITHUB_STEP_SUMMARY"
