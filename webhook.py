@@ -7,6 +7,7 @@ email-domain and primary-email requirements from ``config.yml``.
 """
 
 import argparse
+import logging
 from typing import Any, Dict, List, Optional
 
 import yaml
@@ -316,4 +317,8 @@ if __name__ == '__main__':
     # Zappa/API Gateway serves the app in AWS Lambda, so importing it here
     # keeps the module importable without a hard waitress dependency.
     from waitress import serve
+    # waitress calls logging.basicConfig() with the default WARNING level,
+    # which suppresses its "Serving on http://..." banner, so configure
+    # logging first and keep the root level at INFO.
+    logging.basicConfig(level=logging.INFO)
     serve(app, host=args.host, port=args.port)
