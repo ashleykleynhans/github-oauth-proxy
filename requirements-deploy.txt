@@ -1,6 +1,6 @@
 -r requirements.txt
-boto3==1.43.73
-zappa==0.62.1
+boto3==1.43.123
+zappa==0.63.0
 awsudo==0.2.0
-awscli==1.46.0
-setuptools==84.0.0
+awscli==1.46.2
+setuptools==84.2.1

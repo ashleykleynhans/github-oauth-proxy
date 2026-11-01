@@ -252,7 +252,7 @@ every push to `main` and for every release tag:
 docker pull ghcr.io/ashleykleynhans/github-oauth-proxy:latest
 ```
 
-Release tags publish versioned images, e.g. `ghcr.io/ashleykleynhans/github-oauth-proxy:1.2.0`.
+Release tags publish versioned images, e.g. `ghcr.io/ashleykleynhans/github-oauth-proxy:1.3.0`.
 
 ### Running the container
 
